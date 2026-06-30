@@ -1,0 +1,6 @@
+node_modules/
+.env
+.hxa-native.env
+*.env.local
+watchdog-state.json
+*.log
