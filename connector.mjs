@@ -80,17 +80,25 @@ function queueToC4(event) {
   if (!content || typeof content !== 'string') return;
   if (sender === name) return;
   if (seen.has(messageId)) return;
+  // Mark in-flight to avoid double-spawn; on bridge FAILURE we un-mark so the
+  // message can retry on the next delivery (a failed bridge must not silently
+  // swallow the message forever).
   compactSeen(messageId);
 
   const endpoint = buildEndpoint(channelId, sender);
   const args = [C4_RECEIVE, '--channel', 'hxa', '--endpoint', endpoint, '--priority', '2',
     '--content', `[HXA] ${sender} said: ${content}`];
   const child = spawn('node', args, { cwd: ZYLOS_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
+  child.on('error', (e) => { seen.delete(messageId); console.error(`[hxa] spawn c4-receive failed: ${e.message}`); });
   child.stdout.on('data', (c) => process.stdout.write(`[hxa:c4] ${c}`));
   child.stderr.on('data', (c) => process.stderr.write(`[hxa:c4] ${c}`));
   child.on('close', (code) => {
-    if (code !== 0) console.error(`[hxa] queue failed from ${sender}; exit=${code}`);
-    else console.log(`[hxa] queued to C4 from ${sender} endpoint=${endpoint}`);
+    if (code !== 0) {
+      seen.delete(messageId); // allow retry on redelivery
+      console.error(`[hxa] queue failed from ${sender}; exit=${code}`);
+    } else {
+      console.log(`[hxa] queued to C4 from ${sender} endpoint=${endpoint}`);
+    }
   });
 }
 

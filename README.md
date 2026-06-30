@@ -13,6 +13,11 @@ were hollow "dead-regex" shells that look online but never reach the agent.
 2. **Outbound via the standard path** — `send.js` is installed at
    `skills/hxa/scripts/send.js` so `c4-send` can route HXA replies, addressed to
    a specific recipient (e.g. the supervisor).
+   > ⚠️ **`send.js` is required for INBOUND too**: `c4-receive` validates the
+   > channel against `~/zylos/.claude/skills/<channel>/` — if `skills/hxa/`
+   > doesn't exist, inbound is rejected with `invalid channel (hxa)` and nothing
+   > reaches the agent. Installing `send.js` creates that dir. Never deploy the
+   > connector without it.
 3. **Stays connected** — SDK auto-reconnect + a watchdog that restarts the
    connector if PM2 reports it down, and alerts on repeated failure.
 4. **Survives restarts** — registered in PM2 and `pm2 save`d.
