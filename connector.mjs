@@ -9,8 +9,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { HxaConnectClient } from '@coco-xyz/hxa-connect-sdk';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ZYLOS_DIR = process.env.ZYLOS_DIR || '/home/ubuntu/zylos';
 const C4_RECEIVE = path.join(ZYLOS_DIR, '.claude/skills/comm-bridge/scripts/c4-receive.js');
 
@@ -26,12 +28,16 @@ function loadEnvFile(pathname) {
   }
 }
 
-loadEnvFile(process.env.HXA_ENV_FILE || path.join(ZYLOS_DIR, '.hxa-native.env'));
+// Load the connector's own dir .env first (drop-in: one .env per org dir),
+// then any explicit env file, then the legacy native env.
+loadEnvFile(path.join(__dirname, '.env'));
+loadEnvFile(process.env.HXA_ENV_FILE);
+loadEnvFile(path.join(ZYLOS_DIR, '.hxa-native.env'));
 
 const url = process.env.HXA_URL || 'https://conai.cosark.com.cn';
 const token = process.env.HXA_TOKEN;
 const orgId = process.env.HXA_ORG_ID;
-const name = process.env.HXA_NAME || 'bot';
+const name = process.env.HXA_NAME || process.env.HXA_BOT_NAME || 'bot';
 
 if (!token) {
   console.error('[hxa] Missing HXA_TOKEN');
